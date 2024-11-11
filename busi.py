@@ -5,9 +5,10 @@ from mlxtend.frequent_patterns import apriori, association_rules
 
 try:
     conexao = fdb.connect(
-        dsn = 'localhost:E:\\Projetos\\Trabalho\\banco.fdb',
+        dsn = 'localhost:D:\\trabalho\\trabalho_bi\\banco.fdb',
         user = 'SYSDBA',
-        password = 'masterkey'
+        password = 'masterkey',
+        fb_library_name = 'D:\\trabalho\\trabalho_bi\\Firebird-5.0.1.1469-0-windows-x64\\fbclient.dll'
     )
 except Exception as e:
     print(f'Não foi possível conectar ao banco de dados. "{e}"')
@@ -36,7 +37,7 @@ LEFT JOIN
     CLIENTES CLI ON PED.CLIENTE_ID = CLI.CLIENTE_ID 
 WHERE
     PED.DATA >= DATEADD(-1 YEAR TO CURRENT_DATE)
-FETCH FIRST 193 ROWS ONLY
+FETCH FIRST 163 ROWS ONLY
 """
 except Exception as e:
     print(f'Não foi possível obter os dados necessários para o Dataframe. "{e}"')
@@ -117,7 +118,7 @@ from mlxtend.frequent_patterns import apriori, association_rules
 # Agrupar os dados por pedido e produto
 cesta = dataframe.groupby(['pedido_id', 'produto'])['quantidade'].sum().unstack().fillna(0)
 
-cesta_filtrada = cesta.loc[:, cesta.sum(axis=0) > 50]
+cesta_filtrada = cesta.loc[:, cesta.sum(axis=0) > 105]
 
 # Criar uma tabela binária de transações
 cesta_binaria = cesta_filtrada.applymap(lambda x: True if x > 0 else False)
@@ -133,31 +134,34 @@ print(regras_associacao[['antecedents', 'consequents', 'support', 'confidence', 
 
 # Selecionando as top 10 regras com maior lift
 top_regras = regras_associacao.nlargest(10, 'lift')
+print(top_regras[['antecedents', 'consequents', 'support', 'confidence', 'lift']].head())
+
+# Concatenando antecedente e consequente para exibição
+top_regras['regra'] = top_regras['antecedents'].astype(str) + " -> " + top_regras['consequents'].astype(str)
 
 # Gerando gráficos para as métricas de Suporte, Confiança e Lift para as top 10 regras
-
 fig, ax = plot.subplots(1, 3, figsize=(15, 5))
 
 # Gráfico de Suporte
-ax[0].bar(top_regras['antecedents'].astype(str), top_regras['support'], color='skyblue')
+ax[0].bar(top_regras['regra'], top_regras['support'], color='skyblue')
 ax[0].set_title('Suporte das Regras')
-ax[0].set_xlabel('Antecedente')
+ax[0].set_xlabel('Regra (Antecedente -> Consequente)')
 ax[0].set_ylabel('Suporte')
-ax[0].tick_params(axis='x', rotation=45)
+ax[0].tick_params(axis='x', rotation=90)
 
 # Gráfico de Confiança
-ax[1].bar(top_regras['antecedents'].astype(str), top_regras['confidence'], color='lightgreen')
+ax[1].bar(top_regras['regra'], top_regras['confidence'], color='lightgreen')
 ax[1].set_title('Confiança das Regras')
-ax[1].set_xlabel('Antecedente')
+ax[1].set_xlabel('Regra (Antecedente -> Consequente)')
 ax[1].set_ylabel('Confiança')
-ax[1].tick_params(axis='x', rotation=45)
+ax[1].tick_params(axis='x', rotation=90)
 
 # Gráfico de Lift
-ax[2].bar(top_regras['antecedents'].astype(str), top_regras['lift'], color='orange')
+ax[2].bar(top_regras['regra'], top_regras['lift'], color='orange')
 ax[2].set_title('Lift das Regras')
-ax[2].set_xlabel('Antecedente')
+ax[2].set_xlabel('Regra (Antecedente -> Consequente)')
 ax[2].set_ylabel('Lift')
-ax[2].tick_params(axis='x', rotation=45)
+ax[2].tick_params(axis='x', rotation=90)
 
 plot.tight_layout()
 plot.show()
